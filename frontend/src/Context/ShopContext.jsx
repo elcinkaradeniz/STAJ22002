@@ -36,27 +36,53 @@ const ShopContextProvider = (props)=>{
   }
     },[])
 
-    const addToCart = (itemId) =>{
-        setCartItems((prev)=>({...prev,[itemId]: (prev[itemId] || 0)+1}));
-       
-        if(localStorage.getItem('auth-token')){
-            fetch('http://localhost:4000/addtocart',{
-                method:'POST',
-                headers:{
-                    Accept:'application/form-data',
-                    'auth-token': `${localStorage.getItem('auth-token')}`,
-                    'Content-Type':'application/json',
+    const addToCart = (itemId) => {
+        // Sepet öğelerini güncelleme
+        setCartItems((prev) => ({
+            ...prev,
+            [itemId]: (prev[itemId] || 0) + 1
+        }));
+        
+        // Auth-token kontrolü
+        const token = localStorage.getItem('auth-token');
+        if (token) {
+            fetch('http://localhost:4000/addtocart', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',  // JSON formatında veri kabul ediyoruz
+                    'auth-token': token,           // Token'ı ekliyoruz
+                    'Content-Type': 'application/json'
                 },
-                body:JSON.stringify({"itemId":itemId}),
+                body: JSON.stringify({ itemId: itemId })
             })
-            .then((response)=>response.json())
-            .then((data)=>console.log(data));
+            .then(response => {
+                // Eğer yanıt 401 ise, token geçersiz olabilir
+                if (response.status === 401) {
+                    console.error('Token geçersiz veya süresi dolmuş');
+                    // Kullanıcıyı yeniden yönlendirme veya oturum açtırma gibi işlemler yapılabilir
+                }
+                return response.json();
+            })
+            .then(data => console.log(data))
+            .catch(error => {
+                console.error('İstek sırasında bir hata oluştu:', error);
+            });
+        } else {
+            console.error('Auth-token bulunamadı. Kullanıcı oturum açmamış olabilir.');
         }
-    }
+    };
+    
 
     const removeFromCart = (itemId) =>{
-        setCartItems((prev)=>({...prev,[itemId]:prev[itemId]-1}));
-
+        setCartItems((prev) => {
+            // Miktarı azalt ve eğer miktar sıfır veya daha düşükse, öğeyi kaldır
+            const newQuantity = (prev[itemId] || 0) - 1;
+            if (newQuantity <= 0) {
+                const { [itemId]: _, ...rest } = prev;
+                return rest;
+            }
+            return { ...prev, [itemId]: newQuantity };
+        });
 
         if(localStorage.getItem('auth-token')){
             fetch('http://localhost:4000/removefromcart',{
@@ -68,9 +94,16 @@ const ShopContextProvider = (props)=>{
                 },
                 body:JSON.stringify({"itemId":itemId}),
             })
-            .then((response)=>response.json())
-            .then((data)=>console.log(data));
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then((data) => console.log(data))
+            .catch((error) => console.error('Error:', error));
         }
+        
     }
 
     const getTotalCartAmount = () =>{
