@@ -81,3 +81,9 @@ npm run dev
 cd ../frontend
 npm install
 npm start
+
+
+
+## Canlı Versiyon
+
+Projenin canlı versiyonunu [buradan] https://e-ticaret-sitesi.netlify.app/   görüntüleyebilirsiniz.
